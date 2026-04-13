@@ -45,9 +45,17 @@ const scriptDir = path.dirname(url.fileURLToPath(import.meta.url));
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || null;
 
 /**
- * Detect the project root. A project root is a directory containing at least
- * one of: specs/, decisions/, or research/ (the core ProjectMaster folders).
- * We walk up from cwd (or --project if given) looking for one.
+ * Detect the project root. Walk up from cwd (or --project if given) and
+ * stop at the first directory that either:
+ *   (a) looks like a ProjectMaster project - has specs/, decisions/, or
+ *       research/ AND also has a project boundary marker (.git, package.json)
+ *   (b) is a project boundary (.git, package.json) with no spec folders -
+ *       in which case we use it as the root and scanning will find nothing,
+ *       which is the correct behaviour
+ *
+ * Crucially we never walk PAST a .git or package.json boundary. Without that
+ * guard, running inside a sub-project would snap to an unrelated ancestor
+ * that happened to have a specs/ folder.
  */
 function detectProjectRoot() {
   if (args.project) return path.resolve(args.project);
@@ -56,11 +64,17 @@ function detectProjectRoot() {
   const stopAt = path.parse(cur).root;
 
   while (cur !== stopAt) {
+    const isBoundary =
+      fs.existsSync(path.join(cur, '.git')) ||
+      fs.existsSync(path.join(cur, 'package.json'));
     const hasSpecFolder =
       fs.existsSync(path.join(cur, 'specs')) ||
       fs.existsSync(path.join(cur, 'decisions')) ||
       fs.existsSync(path.join(cur, 'research'));
+
+    if (isBoundary) return cur;
     if (hasSpecFolder) return cur;
+
     cur = path.dirname(cur);
   }
 
@@ -130,7 +144,9 @@ const errors = [];
 const warnings = [];
 const idIndex = new Map(); // id -> file path
 
-// Directories we should never treat as real spec content
+// Directories we should never treat as real spec content.
+// Dot-prefixed directories (.git, .next, .turbo, .mastra, .serena, etc.)
+// are already skipped by the walker's startsWith('.') check.
 const SKIP_DIRS = new Set([
   'node_modules',
   'templates',
@@ -138,11 +154,24 @@ const SKIP_DIRS = new Set([
   '_source-documents',
   'images',
   'comments',
-  '.git',
-  '.github',
-  '.claude',
-  '.claude-plugin',
+  // Build outputs and caches
+  'dist',
+  'build',
+  'out',
+  'coverage',
+  'target',
+  // Package workspace noise
+  'bmad-studio',
 ]);
+
+// Sidecar YAMLs follow a strict naming convention. Any other .yaml file in
+// the tree (docker-compose.yaml, pnpm-lock.yaml, random config files) is not
+// a ProjectMaster sidecar and must not be schema-validated.
+const SIDECAR_YAML_PATTERN = /^(module|epic|S\d+)\.ya?ml$/i;
+
+// Spec markdown files also follow a convention: module.md, epic.md, or
+// S<NN>-<slug>.md. Other markdown (README, random docs) is not a spec file.
+const SPEC_MD_PATTERN = /^(module|epic|S\d+-.+)\.md$/i;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -307,8 +336,8 @@ function main() {
   console.log(`Scanning:     ${relativeToRoot(targetPath) || '(root)'}\n`);
 
   const files = walk(targetPath);
-  const mdFiles = files.filter((f) => f.endsWith('.md'));
-  const yamlFiles = files.filter((f) => f.endsWith('.yaml') || f.endsWith('.yml'));
+  const mdFiles = files.filter((f) => SPEC_MD_PATTERN.test(path.basename(f)));
+  const yamlFiles = files.filter((f) => SIDECAR_YAML_PATTERN.test(path.basename(f)));
 
   for (const md of mdFiles) checkMdHasSidecar(md);
 
