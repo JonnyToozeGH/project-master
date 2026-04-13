@@ -1,0 +1,21 @@
+{
+  "name": "project-master",
+  "version": "0.1.0",
+  "description": "Spec-driven development toolkit for Claude Code. Opinionated spec hierarchy (module/epic/story), sidecar YAML metadata, JSON schema validation, Jira sync, and scaffolding commands.",
+  "author": {
+    "name": "Jonny Tooze",
+    "url": "https://github.com/JonnyToozeGH"
+  },
+  "homepage": "https://github.com/JonnyToozeGH/project-master",
+  "repository": "https://github.com/JonnyToozeGH/project-master",
+  "license": "MIT",
+  "keywords": [
+    "spec-driven-development",
+    "spec-as-code",
+    "jira",
+    "architecture",
+    "adr",
+    "scaffolding",
+    "product-management"
+  ]
+}

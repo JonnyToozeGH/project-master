@@ -1,0 +1,41 @@
+# Epic sidecar metadata
+
+# Identity
+id: {{module_prefix}}-E{{epic_num}}                 # e.g. BILL-E01
+type: epic
+title: {{title}}
+priority: P1
+
+# Hierarchy
+module: {{module}}
+
+# Ownership and status
+owner: {{owner}}
+status: backlog                                     # backlog | in-progress | done | blocked | superseded
+
+# Children (stories under this epic)
+stories: []                                         # auto-populated by /sync tooling from folder contents
+
+# Dependencies
+depends-on: []
+blocks: []
+
+# Jira sync
+jira_key: null
+jira_sync_at: null
+jira_sync_hash: null
+
+# Progress
+stories_total: 0                                    # auto-computed
+stories_done: 0                                     # auto-computed
+progress_percent: 0                                 # auto-computed
+
+# Supersession
+superseded_by: null
+supersedes: null
+
+# Metadata
+created: {{date}}
+created_by: {{author}}
+updated: {{date}}
+updated_by: {{author}}

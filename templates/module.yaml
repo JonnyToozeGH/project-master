@@ -1,0 +1,30 @@
+# Module sidecar metadata
+
+# Identity
+id: {{module_prefix}}
+type: module
+title: {{module_name}}
+
+# Ownership and status
+owner: {{owner}}
+status: backlog                                     # backlog | in-progress | done | deprecated
+
+# Children
+epics: []                                           # auto-populated
+
+# Jira sync
+jira_key: null                                      # Jira uses modules as top-level projects or components
+jira_component: null
+
+# Progress
+epics_total: 0
+epics_done: 0
+stories_total: 0
+stories_done: 0
+progress_percent: 0
+
+# Metadata
+created: {{date}}
+created_by: {{author}}
+updated: {{date}}
+updated_by: {{author}}

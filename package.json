@@ -1,0 +1,27 @@
+{
+  "name": "project-master",
+  "version": "0.1.0",
+  "description": "Spec-driven development toolkit for Claude Code",
+  "license": "MIT",
+  "author": "Jonny Tooze",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JonnyToozeGH/project-master.git"
+  },
+  "homepage": "https://github.com/JonnyToozeGH/project-master",
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate-specs.mjs",
+    "validate:strict": "node scripts/validate-specs.mjs --strict",
+    "sync:jira": "node scripts/sync-jira.mjs",
+    "sync:jira:apply": "node scripts/sync-jira.mjs --apply"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

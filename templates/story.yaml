@@ -1,0 +1,45 @@
+# Story sidecar metadata - machine-readable, syncable with Jira
+# Every story.md has a matching .yaml file with the same base name
+
+# Identity
+id: {{module_prefix}}-{{epic_id}}-S{{story_num}}   # e.g. BILL-E01-S02
+type: story                                         # vision | module | epic | story | task | adr
+title: {{title}}
+priority: P1                                        # P1 (critical) | P2 (important) | P3 (nice-to-have)
+
+# Hierarchy
+module: {{module}}                                  # e.g. billing | onboarding | reporting | auth | cross-cutting
+epic: {{module_prefix}}-{{epic_id}}                 # parent epic id
+mission: {{mission_id}}                             # optional, if part of a mission
+
+# Ownership and status
+owner: {{owner}}                                    # github username or name
+status: backlog                                     # backlog | ready-for-dev | in-progress | review | done | blocked | superseded
+blocked_by: null                                    # if status=blocked, what's blocking it
+
+# Dependencies
+depends-on: []                                      # list of story/epic ids that must be done first
+blocks: []                                          # list of story/epic ids waiting on this
+
+# Jira sync (populated by /sync-jira skill)
+jira_key: null                                      # e.g. SCRUM-42 after first sync
+jira_sync_at: null                                  # ISO timestamp of last successful sync
+jira_sync_hash: null                                # SHA of content at last sync, for drift detection
+
+# Traceability
+acceptance_criteria_count: 0                        # number of ACs in the story.md
+code_refs: []                                       # file paths that implement this story
+test_refs: []                                       # paths to tests that cover this story
+test_status: missing                                # missing | failing | passing | partial
+coverage_target: 100                                # % of ACs that must be covered by tests
+coverage_actual: 0                                  # % of ACs actually covered (computed by /sync-tests)
+
+# Supersession
+superseded_by: null                                 # id of story that replaces this one
+supersedes: null                                    # id of story this one replaces
+
+# Metadata
+created: {{date}}
+created_by: {{author}}
+updated: {{date}}
+updated_by: {{author}}

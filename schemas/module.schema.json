@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Module sidecar YAML",
+  "description": "Machine-readable metadata for a module spec. Modules are the top-level containers in the spec hierarchy (module > epic > story > task).",
+  "type": "object",
+  "required": ["id", "type", "title", "owner", "status", "created"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,6}$",
+      "description": "Module ID: 2-6 uppercase letters (e.g. BILL, ONB, AUTH)"
+    },
+    "type": { "const": "module" },
+    "title": { "type": "string", "minLength": 1 },
+    "owner": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["backlog", "in-progress", "done", "deprecated"]
+    },
+    "epics": { "type": "array", "items": { "type": "string" } },
+    "jira_key": { "type": ["string", "null"] },
+    "jira_component": { "type": ["string", "null"] },
+    "epics_total": { "type": "integer", "minimum": 0 },
+    "epics_done": { "type": "integer", "minimum": 0 },
+    "stories_total": { "type": "integer", "minimum": 0 },
+    "stories_done": { "type": "integer", "minimum": 0 },
+    "progress_percent": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "created": { "type": "string", "format": "date" },
+    "created_by": { "type": "string" },
+    "updated": { "type": "string", "format": "date" },
+    "updated_by": { "type": "string" }
+  }
+}

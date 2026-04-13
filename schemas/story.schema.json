@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Story sidecar YAML",
+  "description": "Machine-readable metadata for a story spec file",
+  "type": "object",
+  "required": ["id", "type", "title", "priority", "module", "epic", "owner", "status", "created"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,6}-E[0-9]{2}-S[0-9]{2}$",
+      "description": "Story ID in format MODULE-EXX-SYY (e.g. BILL-E01-S02)"
+    },
+    "type": { "const": "story" },
+    "title": { "type": "string", "minLength": 5 },
+    "priority": {
+      "type": "string",
+      "enum": ["P1", "P2", "P3"]
+    },
+    "module": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Module slug. Projects define their own module list in .pm-config.json (or accept any slug)."
+    },
+    "epic": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,6}-E[0-9]{2}$"
+    },
+    "mission": { "type": ["string", "null"] },
+    "owner": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["backlog", "ready-for-dev", "in-progress", "review", "done", "blocked", "superseded"]
+    },
+    "blocked_by": { "type": ["string", "null"] },
+    "depends-on": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blocks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "jira_key": { "type": ["string", "null"] },
+    "jira_sync_at": { "type": ["string", "null"] },
+    "jira_sync_hash": { "type": ["string", "null"] },
+    "acceptance_criteria_count": { "type": "integer", "minimum": 0 },
+    "code_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "test_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "test_status": {
+      "type": "string",
+      "enum": ["missing", "failing", "passing", "partial"]
+    },
+    "coverage_target": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "coverage_actual": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "superseded_by": { "type": ["string", "null"] },
+    "supersedes": { "type": ["string", "null"] },
+    "created": { "type": "string", "format": "date" },
+    "created_by": { "type": "string" },
+    "updated": { "type": "string", "format": "date" },
+    "updated_by": { "type": "string" }
+  }
+}
