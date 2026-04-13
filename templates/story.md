@@ -5,7 +5,7 @@ sidecar: S{{story_num}}.yaml
 
 # Story {{story_num}}: {{title}}
 
-**Epic:** [{{epic_title}}](../epic.md)
+**Epic:** [{{epic_id}} - {{epic_title}}](../epic.md)
 **Module:** {{module}}
 **Priority:** P{{priority}}
 

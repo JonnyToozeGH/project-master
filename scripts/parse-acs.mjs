@@ -29,11 +29,32 @@ function parseStoryFile(filePath) {
 
   // Extract module
   const moduleMatch = content.match(/\*\*Module:\*\*\s*(.+)/);
-  const module = moduleMatch ? moduleMatch[1].trim().replace(/\[|\]|\(.*?\)/g, '').trim() : '';
+  let module = moduleMatch ? moduleMatch[1].trim().replace(/\[|\]|\(.*?\)/g, '').trim() : '';
 
   // Extract epic ID from the epic backlink
   const epicMatch = content.match(/\*\*Epic:\*\*\s*\[([A-Z]+-E\d+)/);
-  const epicId = epicMatch ? epicMatch[1] : '';
+  let epicId = epicMatch ? epicMatch[1] : '';
+
+  // Fall back to the sidecar YAML for any fields missing from the markdown.
+  // The sidecar lives in the same directory as the story md with the
+  // S<NN>.yaml naming convention (derived from the story filename).
+  if (!epicId || !module) {
+    const sidecarMatch = path.basename(filePath).match(/^(S\d+)-/);
+    if (sidecarMatch) {
+      const sidecarPath = path.join(path.dirname(filePath), `${sidecarMatch[1]}.yaml`);
+      if (fs.existsSync(sidecarPath)) {
+        const sidecar = fs.readFileSync(sidecarPath, 'utf8');
+        if (!epicId) {
+          const sidecarEpic = sidecar.match(/^epic:\s*([A-Z]+-E\d+)/m);
+          if (sidecarEpic) epicId = sidecarEpic[1];
+        }
+        if (!module) {
+          const sidecarModule = sidecar.match(/^module:\s*(.+?)\s*$/m);
+          if (sidecarModule) module = sidecarModule[1].trim();
+        }
+      }
+    }
+  }
 
   // Extract ACs
   const acs = [];
