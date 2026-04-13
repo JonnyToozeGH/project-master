@@ -1,7 +1,9 @@
 {
   "name": "project-master",
   "owner": {
-    "name": "JonnyToozeGH"
+    "name": "JonnyToozeGH",
+    "email": "jonny@pimmsassociates.com",
+    "url": "https://github.com/JonnyToozeGH"
   },
   "plugins": [
     {
