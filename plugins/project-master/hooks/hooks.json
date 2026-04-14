@@ -1,14 +1,16 @@
 {
-  "PostToolUse": [
-    {
-      "matcher": "Bash",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-push-jira-sync.sh \"$TOOL_INPUT\"",
-          "timeout": 60
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-push-jira-sync.sh \"$TOOL_INPUT\"",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
 }
