@@ -9,7 +9,7 @@
       "name": "project-master",
       "source": "./plugins/project-master",
       "description": "Spec-driven development toolkit for Claude Code. Opinionated spec hierarchy (module/epic/story), JSON schema validation, Jira sync, and scaffolding commands.",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }
