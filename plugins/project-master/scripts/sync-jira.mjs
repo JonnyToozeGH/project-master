@@ -28,6 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import yaml from 'js-yaml';
 
@@ -37,6 +38,7 @@ const { values: args } = parseArgs({
     only: { type: 'string', default: '.' },
     verbose: { type: 'boolean', default: false },
     project: { type: 'string' },
+    'skip-git-check': { type: 'boolean', default: false },
   },
 });
 
@@ -84,6 +86,81 @@ function detectProjectRoot() {
 
 const root = detectProjectRoot();
 const target = path.resolve(root, args.only === '.' ? '' : args.only);
+
+// ---------------------------------------------------------------------------
+// Git preflight
+//
+// The script walks local sidecar YAMLs and treats them as source of truth.
+// Running against a stale working copy can create duplicate Jira tickets
+// (the script cannot see jira_keys that only exist on origin) or miss
+// updates others have pushed. Fail fast if the repo is dirty or behind
+// origin. Override with --skip-git-check only if you know what you are
+// doing.
+// ---------------------------------------------------------------------------
+
+function runGit(cmd) {
+  return execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+
+function preflightGit() {
+  if (args['skip-git-check']) {
+    console.warn('WARN: --skip-git-check set, bypassing git state check.');
+    return;
+  }
+
+  let inRepo = false;
+  try {
+    runGit('git rev-parse --is-inside-work-tree');
+    inRepo = true;
+  } catch {
+    // Not a git repo. Skip preflight - user has opted out of git-backed spec
+    // management. The script will still work; the safety check just does not
+    // apply.
+  }
+  if (!inRepo) {
+    console.warn('WARN: project root is not a git repository. Skipping sync safety checks.');
+    return;
+  }
+
+  // Dirty tree
+  let dirty = '';
+  try {
+    dirty = runGit('git status --porcelain');
+  } catch {
+    // Fall through - unreachable except on broken git installs
+  }
+  if (dirty) {
+    console.error('\nRefusing to sync: working tree has uncommitted changes.\n');
+    console.error(dirty + '\n');
+    console.error('Commit, stash, or discard local changes first. Or pass');
+    console.error('--skip-git-check to bypass (not recommended - can create');
+    console.error('duplicate Jira tickets if you have local jira_key updates).\n');
+    process.exit(3);
+  }
+
+  // Behind origin? Best-effort - silently skip if no remote or no tracking
+  try {
+    const branch = runGit('git rev-parse --abbrev-ref HEAD');
+    // Fetch the current branch to check if behind
+    try {
+      runGit(`git fetch origin ${branch} --quiet`);
+    } catch {
+      // No origin, no remote branch, or offline - skip this check
+      return;
+    }
+    const behind = parseInt(runGit(`git rev-list --count HEAD..origin/${branch}`) || '0', 10);
+    if (behind > 0) {
+      console.error(`\nRefusing to sync: local ${branch} is ${behind} commit(s) behind origin/${branch}.\n`);
+      console.error('Run: git pull');
+      console.error('Then retry. Pass --skip-git-check to bypass (not recommended).\n');
+      process.exit(4);
+    }
+  } catch {
+    // Any unexpected git failure - skip the behind check, do not block sync
+  }
+}
+
+preflightGit();
 
 // ---------------------------------------------------------------------------
 // File walking

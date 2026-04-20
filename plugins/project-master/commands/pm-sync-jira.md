@@ -46,3 +46,22 @@ Add `--apply` only on explicit confirmation.
 - If the user has a large number of changes (more than 20 creates), read them back and ask for confirmation before applying.
 - Never expose the API token in any log or commit.
 - If Jira returns 401/403, fail fast - don't retry with different credentials.
+
+## Git preflight (built into the script since v0.1.2)
+
+The script now refuses to run if the project root is a git repository and either:
+
+- the working tree has uncommitted changes (exit code 3), or
+- the current branch is behind its `origin/<branch>` remote (exit code 4).
+
+This prevents two real failure modes that have happened in the wild:
+1. Syncing a stale checkout creates duplicate Jira tickets because the
+   script cannot see `jira_key`s that only exist on `origin`.
+2. Syncing a dirty tree loses local-only changes when the next pull
+   brings in a conflicting update.
+
+If the script exits 3 or 4, fix the underlying git state (commit or stash,
+pull) and re-run. Do NOT pass `--skip-git-check` unless the user explicitly
+asks for it and understands the risk.
+
+If the project root is not a git repo at all, the check is skipped silently.
