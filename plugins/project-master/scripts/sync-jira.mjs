@@ -10,13 +10,22 @@
  *  - For each YAML with jira_key set: fetches the Jira issue, updates local
  *    content_hash, writes status back to sidecar if it has changed
  *  - For each YAML with jira_key null: creates a new Jira issue, writes the
- *    returned key back into the sidecar
+ *    returned key back into the sidecar, and (new in v0.1.3) transitions the
+ *    new ticket to match the sidecar's local status. This fixes the initial
+ *    bulk-import case where the local spec already has completed / in-progress
+ *    stories - without this step every new ticket lands in "To Do" regardless
+ *    of what the sidecar says.
  *
  * Environment variables required:
  *   JIRA_HOST     - e.g. https://your-org.atlassian.net
  *   JIRA_EMAIL    - the account email
  *   JIRA_API_TOKEN - API token from https://id.atlassian.com/manage-profile/security/api-tokens
  *   JIRA_PROJECT  - the project key (no default - must be set per project)
+ *
+ * Optional:
+ *   JIRA_STATUS_MAP - override the sidecar-to-Jira status mapping. Format:
+ *     "completed=Done,in_progress=In Progress". Defaults assume the standard
+ *     Jira workflow. Omit a key to skip transitioning that status.
  *
  * Usage:
  *   node scripts/sync-jira.mjs                   # dry run (reports what would change)
@@ -219,6 +228,48 @@ async function jiraFetch(endpoint, options = {}) {
   return res.json();
 }
 
+// Map sidecar status values to Jira transition names. Projects using
+// non-standard workflow names can override via JIRA_STATUS_MAP env var,
+// formatted as "completed=Done,in_progress=In Progress".
+const DEFAULT_STATUS_MAP = {
+  completed: 'Done',
+  in_progress: 'In Progress',
+  // backlog stays at the default "To Do" - no transition needed
+};
+
+function parseStatusMap() {
+  const raw = process.env.JIRA_STATUS_MAP;
+  if (!raw) return DEFAULT_STATUS_MAP;
+  const out = { ...DEFAULT_STATUS_MAP };
+  for (const pair of raw.split(',')) {
+    const [k, v] = pair.split('=').map((s) => s.trim());
+    if (k && v) out[k] = v;
+  }
+  return out;
+}
+
+const STATUS_MAP = parseStatusMap();
+
+async function transitionIssue(key, targetName) {
+  // Fetch available transitions for this issue, find one matching the
+  // target name (case-insensitive), POST its ID.
+  const { transitions } = await jiraFetch(`/issue/${key}/transitions`);
+  const match = transitions.find(
+    (t) => t.name.toLowerCase() === targetName.toLowerCase() ||
+           (t.to && t.to.name && t.to.name.toLowerCase() === targetName.toLowerCase())
+  );
+  if (!match) {
+    throw new Error(
+      `No transition to "${targetName}" available on ${key}. ` +
+      `Available: ${transitions.map((t) => t.name).join(', ')}`
+    );
+  }
+  await jiraFetch(`/issue/${key}/transitions`, {
+    method: 'POST',
+    body: JSON.stringify({ transition: { id: match.id } }),
+  });
+}
+
 function adfFromText(text) {
   // Minimal ADF doc wrapping plain text into paragraphs.
   return {
@@ -379,6 +430,24 @@ async function syncOne(yamlPath, specIndex) {
       data.jira_sync_hash = contentHash;
       writeYaml(yamlPath, data);
       console.log(`[apply] CREATED ${result.key} for ${data.id}${parentJiraKey ? ` (parent: ${parentJiraKey})` : ''}`);
+
+      // Seed the new ticket's status from the sidecar. Jira creates every
+      // ticket in the workflow's initial state ("To Do" on the default
+      // template), which is wrong when the local spec has existing
+      // completed/in_progress tracking. Transition immediately so the
+      // initial bulk import reflects the true state of the project.
+      const targetStatus = STATUS_MAP[data.status];
+      if (targetStatus) {
+        try {
+          await transitionIssue(result.key, targetStatus);
+          console.log(`[apply] TRANSITIONED ${result.key} to "${targetStatus}" (sidecar status: ${data.status})`);
+        } catch (err) {
+          console.warn(`[apply] WARN: could not transition ${result.key} to "${targetStatus}": ${err.message}`);
+          // Non-fatal: the issue still exists, just in the wrong state.
+          // User can transition manually or re-run after fixing workflow.
+        }
+      }
+
       // Also register in the spec index so subsequent stories in the same run
       // can resolve their parent epic
       specIndex.idToJira.set(data.id, result.key);
